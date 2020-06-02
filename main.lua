@@ -67,6 +67,7 @@ function love.load()
   local font = love.graphics.newFont("Arial.ttf", 24)
   text = love.graphics.newText(font, "")
   textTimer = love.graphics.newText(font, "")
+  finalText = love.graphics.newText(font, "")
 end
 
 function love.mousepressed(x, y, bt)
@@ -97,6 +98,7 @@ function love.draw()
     end
     text:set(string.format("Pontos: %.1f", pontos))
     textTimer:set(string.format("Tempo: %.0f", timer))
+    finalText:set(string.format())
     love.graphics.setColor(0, 0, 0)
     love.graphics.draw(text, 660, 0)
     
