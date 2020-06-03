@@ -1,14 +1,17 @@
 local mqtt = require "mqttLoveLibrary"
 
 local bolas = {}
-player = "player1"
+player = "playerx"
 local N = 100
-local S = 0
 local pontos = 0
 local count = 0
-local seed = 2
+math.randomseed(os.time())
+local seed = math.random(0, 50)
 local timer = 0
 local gameStart = false
+local finalScore = {}
+
+
 
 local function handle(msg)
   
@@ -24,7 +27,7 @@ local function handle(msg)
   
   if msg:sub(1, 6) == "inicia" then
     gameStart = true
-    S = msg:match(":(%d):")
+    S = msg:match(":(.-):")
     
     math.randomseed(S)
     local w, h = love.graphics.getDimensions()
@@ -54,12 +57,21 @@ local function handle(msg)
       end
     end
   end
+  
+  --final score handler
+  if msg:sub(1, 5) == "final" then
+    local playerFinal, pontosFinal = msg:match(":(.-):(.-):")
+    
+    finalScore[#finalScore + 1] = {player = playerFinal, score = tonumber(pontosFinal)}
+
+  end
+  
 end
 
 
 function love.load()
   
-  mqtt.start("test.mosquitto.org", "player1", "midnightCircus", handle)
+  mqtt.start("test.mosquitto.org", "playerx", "midnightCircus", handle)
   mqtt.sendMessage("ready" ,"midnightCircus")
   
   
@@ -75,6 +87,9 @@ function love.mousepressed(x, y, bt)
 end
 
 
+--final score organization
+
+
 
 function love.update(dt)
   mqtt.checkMessages()
@@ -86,27 +101,39 @@ function love.update(dt)
   if timer >= 10 then
     showScore = true
     gameStart = false
+    --Sends the final score to the mqtt channel
+    mqtt.sendMessage("final:"..player .. ":" .. pontos .. ":", "midnightCircus")
+    timer = 0
+  end
+  for i = 1, #finalScore do
+  table.sort(finalScore, function(a, b) return a.score > b.score end)
   end
   
 end
 
+
 function love.draw()
-  if timer <= 10 then
+  if gameStart == true then
     for i = 1, #bolas do
       love.graphics.setColor(bolas[i].cor[1], bolas[i].cor[2], bolas[i].cor[3])
       love.graphics.circle("fill", bolas[i].x, bolas[i].y, bolas[i].r)
     end
-    text:set(string.format("Pontos: %.1f", pontos))
+    text:set(string.format("Pontos: %.0f", pontos))
     textTimer:set(string.format("Tempo: %.0f", timer))
-    finalText:set(string.format())
+    --finalText:set(string.format())
     love.graphics.setColor(0, 0, 0)
     love.graphics.draw(text, 660, 0)
     
     love.graphics.draw(textTimer , 350, 0)
   end
   
+  local k = 200
   if showScore then
-    love.graphics.draw(text, 300,300)
+    love.graphics.print("Pontuação final: ", 100, 180)
+    for i = 1, #finalScore do
+      love.graphics.print(finalScore[i].player.. ":" .. finalScore[i].score, 100, k)
+      k = k + 25
+    end
   end
   
 end
